@@ -1,0 +1,15 @@
+# Chat with a model running on your machine instead of Claude: no API key, nothing leaves the machine.
+# Any OpenAI-compatible server works; with llama.cpp:
+#   llama-server -m Qwen3-4B-Instruct-2507-Q4_K_M.gguf --port 8090 --jinja -c 16384
+# (--jinja enables tool calling with the model's own chat template)
+spring:
+  ai:
+    model:
+      chat: openai
+    openai:
+      base-url: ${LOCAL_LLM_URL:http://localhost:8090}
+      api-key: ${LOCAL_LLM_KEY:not-needed}
+      chat:
+        options:
+          model: ${LOCAL_LLM_MODEL:local}
+          temperature: 0.2

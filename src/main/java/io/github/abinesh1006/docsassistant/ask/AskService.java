@@ -1,5 +1,6 @@
 package io.github.abinesh1006.docsassistant.ask;
 
+import io.github.abinesh1006.docsassistant.ingest.IngestionService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Answers a question in one ChatClient call. The RAG advisor retrieves matching chunks first; the model may call
@@ -26,9 +29,11 @@ public class AskService {
     public record AskResult(String answer, boolean foundInDocs, List<String> citedSources, List<Source> retrieved, String model) {}
 
     private final ChatClient chatClient;
+    private final IngestionService ingestion;
 
-    public AskService(ChatClient chatClient) {
+    public AskService(ChatClient chatClient, IngestionService ingestion) {
         this.chatClient = chatClient;
+        this.ingestion = ingestion;
     }
 
     public AskResult ask(String question) {
@@ -42,9 +47,23 @@ public class AskService {
         return new AskResult(
                 answer.answer(),
                 answer.foundInDocs(),
-                answer.citedSources() == null ? List.of() : answer.citedSources(),
+                knownSources(answer.citedSources()),
                 retrieved(chat),
                 chat == null ? null : chat.getMetadata().getModel());
+    }
+
+    /**
+     * The model only proposes citations: anything that is not a real ingested file is dropped. The RAG context
+     * holds document text, not file names, so a model can invent a plausible name; small local models often do.
+     */
+    private List<String> knownSources(List<String> cited) {
+        if (cited == null) {
+            return List.of();
+        }
+        Set<String> known = ingestion.ingestedFiles().stream()
+                .map(IngestionService.IngestedFile::source)
+                .collect(Collectors.toSet());
+        return cited.stream().filter(known::contains).distinct().toList();
     }
 
     @SuppressWarnings("unchecked")

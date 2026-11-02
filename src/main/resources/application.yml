@@ -7,6 +7,16 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
   ai:
+    # Which provider serves each kind of model. Claude for chat by default; the "local" profile switches to an
+    # OpenAI-compatible local server. The OpenAI starter's other models are not used.
+    model:
+      chat: anthropic
+      embedding: transformers
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
       chat:

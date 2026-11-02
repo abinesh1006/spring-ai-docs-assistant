@@ -53,6 +53,11 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-anthropic</artifactId>
         </dependency>
+        <!-- Chat model for the "local" profile: any OpenAI-compatible server, e.g. llama.cpp's llama-server with a GGUF model -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
         <!-- Embeddings: a small ONNX model that runs inside the JVM, so no second API key is needed -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

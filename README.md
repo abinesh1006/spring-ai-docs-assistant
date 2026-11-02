@@ -47,8 +47,8 @@ flowchart LR
 
 ## Run it
 
-You need Java 21 and an Anthropic API key. Nothing else: the embedding model runs inside the JVM and the default
-vector store is a JSON file.
+You need Java 21 and either an Anthropic API key or a local model (see below). Nothing else: the embedding model
+runs inside the JVM and the default vector store is a JSON file.
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -85,6 +85,29 @@ Other endpoints:
 The sample documents describe a fictional payments API. Replace the files in `docs/` with your own Markdown, or set
 `DOCS_DIR` to another folder.
 
+### Without an API key: a local model
+
+Any server with an OpenAI-compatible API works. With [llama.cpp](https://github.com/ggml-org/llama.cpp) and a small
+GGUF model (Qwen3-4B-Instruct at 4-bit is about 2.5 GB and runs on a laptop GPU with 4 GB):
+
+```bash
+llama-server -m Qwen3-4B-Instruct-2507-Q4_K_M.gguf --port 8090 --jinja -c 8192
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+The `local` profile sets `spring.ai.model.chat=openai` and points the OpenAI starter at `http://localhost:8090`
+(override with `LOCAL_LLM_URL`). `--jinja` makes llama.cpp use the model's own chat template, which tool calling
+needs. Nothing leaves the machine.
+
+On a laptop with a 4 GB GTX 1650, llama.cpp put 22 of the model's 37 layers on the GPU (`-c 8192`; a 16k context
+does not fit) and answers took 10 to 30 seconds. The retrieval side is identical to the Claude setup, and the
+4B model answered the sample questions correctly, but it is weaker at the rules: asked about something the docs
+don't cover, it said so and then added a guess, and it invented a source file name (which `AskService` drops).
+Claude follows those instructions much more reliably.
+
+`spring.ai.model.chat` and `spring.ai.model.embedding` choose which provider serves each model when several
+starters are on the classpath; without them Spring AI would create two chat models and fail to start.
+
 ### With PostgreSQL + pgvector
 
 ```bash
@@ -120,6 +143,9 @@ The `pgvector` profile turns on the DataSource and Spring AI's `PgVectorStore` (
 - **Answers are structured and sourced.** The model must return `answer`, `foundInDocs` and `citedSources`, and the
   response also carries the chunks that were actually retrieved, so a client can show sources and flag answers
   the documentation did not support.
+- **The model proposes, the code checks.** `citedSources` keeps only names of files that were really ingested.
+  The RAG context carries document text, not file names, so a model can make one up; the `retrieved` list, built
+  from what the vector store actually returned, is the reliable record of where an answer came from.
 - **Documents are data, not instructions.** The system prompt tells the model to answer only from the context and
   to treat document text as data, and the threshold keeps unrelated chunks out of the prompt. This reduces, but
   does not remove, the risk of prompt injection through a malicious document.
