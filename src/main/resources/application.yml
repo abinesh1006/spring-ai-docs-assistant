@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: docs-assistant
+  # Default profile: file-backed vector store, no database. Start with --spring.profiles.active=pgvector for PostgreSQL.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: ${ANTHROPIC_MODEL:claude-opus-5-5}
+          max-tokens: 16000
+    # Embeddings: all-MiniLM-L6-v2 (ONNX, 384 dimensions) running inside the JVM; downloaded once on first start.
+    embedding:
+      transformer:
+        cache:
+          directory: ${user.home}/.cache/spring-ai-onnx
+
+assistant:
+  docs-dir: ${DOCS_DIR:docs}
+  ingest-on-startup: true
+  store-file: ${VECTOR_STORE_FILE:data/vector-store.json}
+  top-k: 4
+  min-similarity: 0.35
+  chunk-tokens: 400
+
+logging:
+  level:
+    # set to DEBUG to log every prompt and response (SimpleLoggerAdvisor)
+    org.springframework.ai.chat.client.advisor: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

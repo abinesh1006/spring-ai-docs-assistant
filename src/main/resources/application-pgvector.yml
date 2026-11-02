@@ -1,0 +1,15 @@
+# PostgreSQL + pgvector instead of the file-backed store. Start Postgres with: docker compose up -d
+spring:
+  autoconfigure:
+    exclude: []
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/docs_assistant}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 384
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
